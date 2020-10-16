@@ -4,6 +4,7 @@ var ctx = canvas.getContext("2d");
 var start_move = false;
 var finish_move = false;
 var clicking = false;
+var stopfiddling=0;
 ctx.fillStyle = "#FFFFFF";
 const start_img = new Image();
 start_img.onload = function () {
@@ -187,7 +188,7 @@ function isValid(nodex, nodey) {
   return true;
 }
 var dx = [1, 0, -1, 0];
-var speed = 50;
+var delay = 50;
 var click = 1;
 var dy = [0, 1, 0, -1];
 function doBfs(srcx, srcy) {
@@ -231,23 +232,82 @@ function doBfs(srcx, srcy) {
     }
   }
 }
+var x=0;
+function doDfs(srcx, srcy)
+{
+  click=0; //prevents clicking when the pathfinder algorithm is initiated
+  vis[srcx][srcy]=1;
+  if(srcx*25!=prev_start_x || srcy*25!=prev_start_y)
+  anim(srcx, srcy);
+  
+  if (vis[prev_end_x / 25][prev_end_y / 25] == 1) {
+    x=1;
+    
+  }
+  if(x==1)
+  return;
+  if(isValid(srcx+1,srcy)==true)
+  {
+    doDfs(srcx+1,srcy);
+  }
+  if(x==1)
+  return;
+  if(isValid(srcx,srcy+1)==true)
+  {
+    doDfs(srcx,srcy+1);
+  }
+  if(x==1)
+  return;
+  if(isValid(srcx,srcy-1)==true)
+  {
+    doDfs(srcx,srcy-1);
+  }
+  if(x==1)
+  return;
+  if(isValid(srcx-1,srcy)==true)
+  {
+      doDfs(srcx-1,srcy);
+  }
+  if(x==1)
+  return;
+}
+document.addEventListener("mouseup",function(){
+  console.log("prev_start_x= "+prev_start_x+"prev_start_y= "+prev_start_y);
+});
+
 document.getElementById("findbtn").addEventListener("click", function () {
+  disablebtns();
   var imgData = ctx.getImageData(1, 1, 24, 24);
   var r = imgData.data[0];
   var g = imgData.data[1];
   var b = imgData.data[2];
   var alpha = imgData.data[3];
   ctx.lineWidth = 1;
-  if (r + g + b != 0) {
+  if (r + g + b != 0 && algos.value=="BFS") {
     doBfs(prev_start_x, prev_start_y);
+  }
+  else if(r + g + b != 0 && algos.value=="DFS")
+  {
+    doDfs(prev_start_x/25, prev_start_y/25);
+    setTimeout(() => {
+      enablebtns();
+      const success_img = new Image(); // makes the flag to success flag
+      success_img.onload = function () {
+      ctx.drawImage(success_img, prev_end_x,prev_end_y, 24, 24);
+    };
+    success_img.src="successflag.png";
+    }, delay);
   }
   setTimeout(() => {
     if (vis[prev_end_x / 25][prev_end_y / 25] != 1 || r + g + b == 0) {
       alert("No sol");
+      enablebtns();
     } else {
+      if(algos.value=='BFS')
       printPath(dis);
     }
-  }, speed);
+  }, delay);
+
 });
 
 function printPath() {
@@ -308,6 +368,14 @@ function printPath() {
   for (var i = pathx.length - 1; i >= 0; i--) {
     fillpath(pathx[i], pathy[i]);
   }
+  setTimeout(() => {
+    enablebtns();
+    const success_img = new Image(); // makes the flag to success flag
+      success_img.onload = function () {
+      ctx.drawImage(success_img, prev_end_x,prev_end_y, 24, 24);
+    };
+    success_img.src="successflag.png";
+  }, delay);
 }
 function fillpath(pathx, pathy) {
   console.log("pathy");
@@ -316,8 +384,8 @@ function fillpath(pathx, pathy) {
     ctx.strokeStyle = "black";
     ctx.fillRect(pathx * 25, pathy * 25, 25, 25);
     ctx.strokeRect(pathx * 25, pathy * 25, 25, 25);
-  }, speed);
-  speed += 50;
+  }, delay);
+  delay += 50;
 }
 function anim(newx, newy) {
   setTimeout(() => {
@@ -339,9 +407,13 @@ function anim(newx, newy) {
         ctx.strokeRect(vibex, vibey, 25, 25);
       }, 50);
     }
-  }, speed);
-  speed = speed + 2; // increasing delay for each tile------------------------
+  }, delay);
+  if(algos.value=="BFS")
+  delay = delay + 2; // increasing delay for each tile------------------------
+  else 
+  delay+=15;
 }
+
 // fills walls ---------------------------------------------------------------------------
 function fillWalls(event) {
   if (click == 0) {
@@ -373,7 +445,7 @@ function find_location(event) {
   yy = y - (y % 25);
   if (yy < 25) yy = 0;
 }
-function move_start(xx, yy) {
+function move_start(xx, yy) { //moving start icon
   if (xx <= 875 && yy <= 475 && xx >= 0 && yy >= 0) {
     ctx.fillStyle = "white";
     ctx.fillRect(prev_start_x, prev_start_y, 25, 25);
@@ -385,7 +457,7 @@ function move_start(xx, yy) {
     return false;
   }
 }
-function move_end(xx, yy) {
+function move_end(xx, yy) { //moving end icon
   if (xx <= 875 && yy <= 475 && xx >= 0 && yy >= 0) {
     ctx.fillStyle = "white";
     ctx.fillRect(prev_end_x, prev_end_y, 25, 25);
@@ -396,4 +468,18 @@ function move_end(xx, yy) {
   } else {
     return false;
   }
+}
+function disablebtns()
+{
+   document.getElementById("clearbtn").disabled=true; //disabling clearing
+   document.getElementById("clearbtn").classList.add("disab");
+  document.getElementById("findbtn").disabled=true;
+   document.getElementById("findbtn").classList.add("disab");
+}
+function enablebtns()
+{
+   document.getElementById("clearbtn").disabled=false; //disabling clearing
+   document.getElementById("clearbtn").classList.remove("disab");
+   document.getElementById("findbtn").disabled=false;
+   document.getElementById("findbtn").classList.remove("disab");
 }
