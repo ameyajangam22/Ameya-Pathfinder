@@ -38,6 +38,7 @@ h1 {
   border-color: white;
   position: fixed;
 }
+#randomize,
 #clearbtn,
 #findbtn {
   margin-top: 20px;
@@ -50,12 +51,14 @@ h1 {
   color: #fff;
   border: 0;
 }
+#randomize:hover,
 #clearbtn:hover,
 #findbtn:hover {
   background-color: #5c2a9d;
   color: #f0a500;
   font-family: "Press Start 2P", cursive;
 }
+#randomize:hover,
 #clearbtn:focus,
 #findbtn:focus {
   outline: 0;
@@ -73,6 +76,13 @@ h1 {
   color: #f4f4f4;
 }
 #findbtn.disab:hover {
+  color: #f4f4f4;
+}
+#randomize.disab {
+  background-color: grey;
+  color: #f4f4f4;
+}
+#randomize.disab:hover {
   color: #f4f4f4;
 }
 .playbar {
