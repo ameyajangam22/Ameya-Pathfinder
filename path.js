@@ -1,4 +1,5 @@
 const algos = document.getElementById("algos");
+const randomize=document.getElementById("randomize"); 
 var canvas = document.getElementById("myCanvas");
 var ctx = canvas.getContext("2d");
 var start_move = false;
@@ -6,6 +7,11 @@ var finish_move = false;
 var clicking = false;
 var stopfiddling=0;
 ctx.fillStyle = "#FFFFFF";
+var grid = new Array(36);
+for(var i=0;i<36;i++)
+  {
+    grid[i]=[];
+  }
 const start_img = new Image();
 start_img.onload = function () {
   ctx.drawImage(start_img, 0, 0, 24, 24);
@@ -40,7 +46,9 @@ function drawBoard() {
     }
   }
 }
+$(document).ready(function(){
 drawBoard();
+})
 var xx, yy;
 // click and drag mousedown function--------------------------------------------------------
 canvas.addEventListener("mousedown", function () {
@@ -133,6 +141,33 @@ canvas.addEventListener("mouseout", function () {
     canvas.removeEventListener("mousemove", fillWalls);
   }
 });
+
+function randomizer()
+{
+  for(var i=0;i<36;i++)
+  {
+    for(var j=0;j<20;j++)
+    {
+      if(i!=prev_start_x/25 || j!==prev_start_y/25)
+      {
+        if(i!=prev_end_x/25 || j!=prev_end_y/25)
+        {
+          if(Math.random()<0.3)
+          {
+              ctx.fillStyle = "black";
+              ctx.strokeStyle="black";
+              ctx.fillRect(i * 25, j * 25, 25, 25);
+              ctx.strokeRect(i * 25, j * 25, 25, 25);
+          }
+        }
+      }
+    }
+  }
+}
+// whenever I click randomize! button
+randomize.addEventListener("click", function(){
+  randomizer();
+})
 // data structures for BFS----------------------------------------------------
 
 class queue {
@@ -271,6 +306,159 @@ function doDfs(srcx, srcy)
   if(x==1)
   return;
 }
+
+var openset=[];
+var closeset=[];
+function cell(i,j)
+{
+  this.i=i;
+  this.j=j;
+  this.f=0;
+  this.g=0;
+  this.h=0;
+  this.neighbours=[];
+  this.previous=0;
+
+  this.addNeighbours=function(){
+  if(isValid(i+1,j)==true)
+  {
+    this.neighbours.push(grid[i+1][j]);
+  }
+  if(isValid(i,j+1)==true)
+  {
+   this.neighbours.push(grid[i][j+1]); 
+  }
+  if(isValid(i-1,j)==true)
+  {
+    this.neighbours.push(grid[i-1][j]);
+  }
+  if(isValid(i,j-1)==true)
+  {
+    this.neighbours.push(grid[i][j-1]);
+  }
+}
+}
+function removeCurrentfromArray(openset,current)
+{
+  for(var i=0;i<openset.length;i++)
+  {
+    if(openset[i]===current)
+    {
+      openset.splice(i,1);
+      break;
+    }
+  }
+}
+
+function doAstar(srcx,srcy)
+{
+  click=0;
+  
+  for(var i=0;i<36;i++)
+  {
+    for(var j=0;j<20;j++)
+    {
+      grid[i][j]=new cell(i,j);
+    }
+  }
+  openset.push(grid[srcx][srcy]);
+  while(true)
+  {
+      //find minimum fcost
+      if(openset.length>0)
+      {
+        var lowestcost=0;
+        for(var i=0;i<openset.length;i++)
+        {
+          if(openset[i].f<openset[lowestcost].f)
+          {
+            lowestcost=i;
+          }
+        }
+     
+      var current=openset[lowestcost];
+      // make a current node for iteration (I ALSO NEED TO REMOVE THIS CURRENT LATER FROM THE ARRAY)
+      
+      if(current.i!==srcx || current.j!=srcy)
+      anim(current.i,current.j);
+         //check if we reached our goal cell
+       if(current==grid[prev_end_x/25][prev_end_y/25])
+      {
+        console.log("done");
+        vis[prev_end_x/25][prev_end_y/25]=1;
+        //print path(left)
+        var pathforAstar=[];
+        var backtrack_node= current;
+        while(backtrack_node.previous)
+        {
+          
+          if(backtrack_node.previous.i!=srcx || backtrack_node.previous.j!=srcy)
+          {
+            console.log(backtrack_node.previous.i+","+backtrack_node.previous.j);
+            pathforAstar.push(backtrack_node.previous);
+          }
+          
+          
+          backtrack_node=backtrack_node.previous;
+          
+          console.log("assas");  
+          delay+=20; 
+        }
+          for(var k=pathforAstar.length-1;k>=0;--k)
+          {
+           fillpath(pathforAstar[k].i,pathforAstar[k].j);
+          }
+          change_the_end_flag_to_success_flag();
+        return;
+      }
+      // removing current from the array
+      removeCurrentfromArray(openset,current);
+      // add to closed list
+      closeset.push(current);
+      // add neighbours
+      current.addNeighbours();  
+      //explore neighbours of current
+      var neighbours=current.neighbours;
+      // console.log(neighbours);
+      for(var i=0;i<neighbours.length;i++)
+      {
+        // if not closed else search for next neighbour
+        if(!closeset.includes(neighbours[i]))
+        {
+          var tempoG= current.g+1;
+          // check if already in open, look for better path
+          if(openset.includes(neighbours[i]))
+          {
+            if(tempoG<neighbours[i].g)
+            { 
+              neighbours[i].g=tempoG; 
+              console.log("Idhar kia");
+         
+            }
+          }
+          else
+          {
+            // check if not in open, if not add then
+            neighbours[i].g=tempoG;
+            openset.push(neighbours[i]);
+          }
+          // set heuristic
+          neighbours[i].h= Math.abs(prev_end_x/25-neighbours[i].i)+Math.abs(prev_end_y/25-neighbours[i].j);
+          
+          //setting f cost
+          neighbours[i].f= neighbours[i].g+neighbours[i].h;
+              //setting parent (later required for path)
+            neighbours[i].previous=current;
+        }
+      }
+      }
+      else
+      {
+        break;
+      }
+      
+  }
+}
 document.addEventListener("mouseup",function(){
   console.log("prev_start_x= "+prev_start_x+"prev_start_y= "+prev_start_y);
 });
@@ -289,14 +477,11 @@ document.getElementById("findbtn").addEventListener("click", function () {
   else if(r + g + b != 0 && algos.value=="DFS")
   {
     doDfs(prev_start_x/25, prev_start_y/25);
-    setTimeout(() => {
-      enablebtns();
-      const success_img = new Image(); // makes the flag to success flag
-      success_img.onload = function () {
-      ctx.drawImage(success_img, prev_end_x,prev_end_y, 24, 24);
-    };
-    success_img.src="successflag.png";
-    }, delay);
+    change_the_end_flag_to_success_flag();
+  }
+  else if(r + g + b != 0 && algos.value=="A-star")
+  {
+    doAstar(prev_start_x/25, prev_start_y/25);
   }
   setTimeout(() => {
     if (vis[prev_end_x / 25][prev_end_y / 25] != 1 || r + g + b == 0) {
@@ -368,7 +553,12 @@ function printPath() {
   for (var i = pathx.length - 1; i >= 0; i--) {
     fillpath(pathx[i], pathy[i]);
   }
-  setTimeout(() => {
+
+  change_the_end_flag_to_success_flag();
+}
+function change_the_end_flag_to_success_flag()
+{
+    setTimeout(() => {
     enablebtns();
     const success_img = new Image(); // makes the flag to success flag
       success_img.onload = function () {
@@ -410,8 +600,12 @@ function anim(newx, newy) {
   }, delay);
   if(algos.value=="BFS")
   delay = delay + 2; // increasing delay for each tile------------------------
-  else 
+  else if(algos.value=="DFS")
   delay+=15;
+  else if(algos.value=="A-star")
+  {
+    delay+=3;
+  }
 }
 
 // fills walls ---------------------------------------------------------------------------
@@ -425,6 +619,7 @@ function fillWalls(event) {
   var green = imgData.data[1];
   var blue = imgData.data[2];
   var alpha = imgData.data[3];
+
   ctx.fillRect(xx, yy, 25, 25);
   ctx.strokeRect(xx, yy, 25, 25);
 }
@@ -475,6 +670,8 @@ function disablebtns()
    document.getElementById("clearbtn").classList.add("disab");
   document.getElementById("findbtn").disabled=true;
    document.getElementById("findbtn").classList.add("disab");
+  document.getElementById("randomize").disabled=true;
+   document.getElementById("randomize").classList.add("disab");
 }
 function enablebtns()
 {
@@ -482,4 +679,6 @@ function enablebtns()
    document.getElementById("clearbtn").classList.remove("disab");
    document.getElementById("findbtn").disabled=false;
    document.getElementById("findbtn").classList.remove("disab");
+   document.getElementById("randomize").disabled=false;
+   document.getElementById("randomize").classList.remove("disab");
 }
